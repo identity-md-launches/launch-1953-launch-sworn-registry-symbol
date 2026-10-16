@@ -6,7 +6,16 @@ import {Registry} from "../src/Registry.sol";
 
 /// @notice The launch factory supplies creation code, then constructor arguments, to CREATE2.
 contract FloorProbe {
-    function deploy(bytes memory initCode, bytes32 salt) external returns (address deployed) {
+    /// @dev Keep all CREATE2 operations in one transaction, matching the launch factory.
+    function deployAll(bytes[] memory initCodes, bytes32[] memory salts) external returns (address[] memory deployed) {
+        require(initCodes.length == salts.length, "length mismatch");
+        deployed = new address[](initCodes.length);
+        for (uint256 i; i < initCodes.length; ++i) {
+            deployed[i] = _deploy(initCodes[i], salts[i]);
+        }
+    }
+
+    function _deploy(bytes memory initCode, bytes32 salt) internal returns (address deployed) {
         assembly ("memory-safe") {
             deployed := create2(0, add(initCode, 32), mload(initCode), salt)
             if iszero(deployed) {
@@ -62,9 +71,26 @@ contract FloorTest is Test {
             abi.encode(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7])
         );
         address predictedRegistry = _predict(address(probe), bytes32("Registry"), registryCode);
-        assertEq(probe.deploy(rendererCode, bytes32("Renderer")), args[5]);
-        assertEq(probe.deploy(composerCode, bytes32("Composer")), args[6]);
-        address deployed = probe.deploy(registryCode, bytes32("Registry"));
+        bytes[] memory codes = new bytes[](3);
+        codes[0] = rendererCode;
+        codes[1] = composerCode;
+        codes[2] = registryCode;
+        bytes32[] memory salts = new bytes32[](3);
+        salts[0] = bytes32("Renderer");
+        salts[1] = bytes32("Composer");
+        salts[2] = bytes32("Registry");
+        uint64 factoryNonce = vm.getNonce(address(probe));
+        address[] memory applications = probe.deployAll(codes, salts);
+        assertEq(applications.length, 3);
+        assertEq(vm.getNonce(address(probe)), factoryNonce + 3, "factory creates exactly three applications");
+        for (uint256 i; i < applications.length; ++i) {
+            assertLe(codes[i].length, 49_152, "init code exceeds EIP-3860");
+            assertEq(vm.getNonce(applications[i]), 1, "application constructor created an extra contract");
+            assertEq(applications[i].balance, 0, "deployment must send no ETH");
+        }
+        assertEq(applications[0], args[5]);
+        assertEq(applications[1], args[6]);
+        address deployed = applications[2];
         assertEq(deployed, predictedRegistry);
         _runtime(args[5]);
         _runtime(args[6]);
