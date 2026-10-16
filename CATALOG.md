@@ -157,7 +157,7 @@ trait in section 3 names its template there (T1, T3, T5).
 | `sumArg` | string | T2 and T3 only |
 | `op` | uint8 | T4 only: 1 `>=`, 2 `>`, 3 `<=`, 4 `<`, 5 `==` |
 | `threshold` | uint256 | T1, T2, T4, T5: `>= 1`; T3: head, 1 to 32 |
-| `fromBlock`, `toBlock` | uint64 | `toBlock - fromBlock + 1 >= 7200` and `toBlock < block.number` at registration (T5: `fromBlock == toBlock`, and `toBlock + 7200 <= block.number`) |
+| `fromBlock`, `toBlock` | uint64 | mainnet block numbers; `toBlock - fromBlock + 1 >= 7200` and `toBlock < H` at registration (T5: `fromBlock == toBlock`, and `toBlock + 7200 <= H`), where `H` is the mainnet height: `block.number` on chain 1, else `Composer.mainnetHeightBound()`, one block per 12-second slot since the merge (an upper bound; the consumer chain's own height says nothing about mainnet) |
 | `name` | string | ASCII `[A-Za-z0-9 .-]`, 1 to 32 bytes; escaped by the renderer like every other spec string |
 | `evidence` | derived | chain for kinds 1 to 4, panel for 5 |
 

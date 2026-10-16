@@ -113,7 +113,14 @@ request untouched. A valid late answer can still settle a request that has not b
 
 Every oracle question is about Ethereum mainnet (`chainId: 1`). The body's `consumer.chainId` and the EIP-712
 signing domain use the deployment chain (11155111 on Sepolia); the canonical question hash excludes `consumer`.
-Mainnet bodies remain byte-identical to the committed fixtures.
+Mainnet bodies remain byte-identical to the committed fixtures. Because the question is about mainnet, two
+things do not follow the deployment chain: every catalog question names the mainnet Curator
+(`Composer.MAINNET_CURATOR`, `0xcb0b0531e86a9ac36fa865ca8e3dbccf047fda91`) whatever `curator` the registry holds,
+so a Sepolia body is the mainnet fixture with only `consumer.chainId` changed and the same question hash; and
+`registerSpec` bounds a window by the mainnet height, which is `block.number` on chain 1 and, elsewhere,
+`Composer.mainnetHeightBound()`, one block per 12-second slot since the merge (never below the real height, about
+0.3% above it). The registry's `curator` argument serves the direct-read traits (101 to 601) only, which do read the
+deployment chain's Curator.
 
 Function and event names in this summary are the working names of the interface and did not change in the rename
 (only display strings did). Types, arities and the behaviour described in `CONCEPT.md` are the
@@ -339,7 +346,7 @@ Everything in "What the builder delivers" is in the tree, with these deviations,
   and the unchanged direct-read predicates (`hasDirectTrait`). The registry alone was 41,717 bytes of runtime;
   it was 23,364 after the Registry rules update, 24,495 after the burn rule and is **24,561 after the launch
   corrections**, with **15 bytes** of EIP-170 headroom. Local factoring shares the membership and pool checks
-  without changing their order. Composer is **23,402 bytes**, up from 23,377 (1,174 bytes of headroom), and
+  without changing their order. Composer is **23,655 bytes**, up from 23,402 after the Sepolia rehearsal corrections (921 bytes of headroom), and
   Renderer is unchanged at 21,570 bytes
   with the hive card (3,006 bytes of headroom; it was 11,712 with the text grid); `test/Rename.t.sol` pins the
   Composer budget and `test/Artifacts.t.sol` the EIP-170 limit of all three.
@@ -402,7 +409,12 @@ The registry has no owner: no setter, pause, upgrade, fee switch, `receive` or `
 accepted ways the registry can stop working are listed in `INTEGRATION.md` section 1 (Intake price, callback gas or
 retirement; attester rotation; a changed attestation struct or canonical document); each needs a successor contract.
 The Sepolia executor is a coded V1 whose `previewBridge()` reverts, so free claims there skip the burn with
-code 1. The launch script never selects a zero executor (the launch manifest rejects one). The six-argument
+code 1. On Sepolia the catalog oracle questions still name the mainnet Curator and community specs are bounded by
+the mainnet height (see "Every oracle question is about Ethereum mainnet" above), so the rehearsal can register
+the game's windows and verify catalog traits; the Sepolia Curator and IDMD stand-ins gate only the direct reads,
+membership and the sponsored pool. The Sepolia Intake grants callbacks 1,000,000 gas (mainnet: 200,000), so the
+mainnet stipend is proven by the unit tests, not by a Sepolia delivery.
+The launch script never selects a zero executor (the launch manifest rejects one). The six-argument
 `deploy(curator, idmd, imd, intake, attester, burnExecutor)` remains available for explicit configurations; zero
 still disables the rule at the contract level. The constructor never calls the executor and checks its code
 outside the all-four-empty floor. No executor setter or new owner role is added to the registry.

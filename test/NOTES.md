@@ -1,3 +1,28 @@
+# Sepolia rehearsal corrections: the question's contract and the window's height (2026-10-16, revision)
+
+Two Composer changes, with Registry, Renderer, Types, the generator, goldens, template fixtures, configuration and
+dependencies unchanged. Registry runtime is byte-equal (24,561 B, 15 B headroom); Composer is 23,655 B (921 B
+headroom). Both answer reviewer findings that reproduced on the accepted tree (`ADAPTATION.md`).
+
+- `Composer.catalogSpec` and the T5 parenthesis of trait 1301 name `MAINNET_CURATOR`
+  (`0xcb0b0531e86a9ac36fa865ca8e3dbccf047fda91`) instead of the registry's `curator` argument. Every question is
+  about mainnet, so on Sepolia the old text named a contract with no mainnet code and every catalog oracle trait
+  was a guaranteed miss. The two `address` parameters stay in the ABI, unnamed and unused, so Registry is untouched.
+- `Composer.validateSpec` is a view: on chain 1 it bounds the window by the `block.number` the registry passes, as
+  before; elsewhere by `mainnetHeightBound()`, the first post-merge block plus one block per 12-second slot since
+  (never below the real mainnet height, about 0.3% above it). The 7200-block length and ordering checks are
+  unchanged. Before, Sepolia's own height refused every game window and Base's would have passed unmined ones.
+
+`test/SepoliaRehearsal.t.sol` (8 tests, Sepolia chain id, Curator mock at the Sepolia Curator address): the game
+window and a T5 spec on the deploy block register (10001, 10002, fee pulled); a window at or beyond the bound, a
+T5 block younger than 7200, a short window and a reversed window are still `BadSpec("window")`; on chain 1 the
+guard is exactly `toBlock < block.number` and `toBlock + 7200 <= block.number`; the bound is never below five
+recorded (timestamp, height) pairs and never looser than 100,000 blocks, is the merge block before the merge, and
+is monotone in time (fuzz); the seven catalog bodies on Sepolia equal the mainnet fixtures with only
+`consumer.chainId` changed and carry the plane's question hashes, `specOf` targets the mainnet Curator (zero for
+1301), the Sepolia Curator's address appears nowhere, and `compose` ignores its Curator argument; direct reads still
+read the Sepolia Curator; and a Sepolia claimant verifies 701 end to end through the mock Intake.
+
 # Launch corrections: empty floor, abandon, question chain and Sepolia (2026-10-16)
 
 Four changes, with the compiler, dependencies, Renderer, Types, generator, goldens, template fixtures and

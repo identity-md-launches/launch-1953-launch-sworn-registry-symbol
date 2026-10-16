@@ -27,7 +27,9 @@ panels (section 3).
 Intake v2 was deployed through CREATE2 at the same address on every chain the plane serves; `/health` lists it as
 `intake` for chains 1, 4663 and 11155111 with v1 under `legacyIntakes`. Its source says "every function, event and
 getter of version 1 is here unchanged"; `requestWithFailure`, `failureSelectorOf` and `FailureHookSet` are new. Both
-addresses return `priceOf` 0.5 IMD, `callbackGas` 200,000 and the same writer (read 2026-10-12 00:30 UTC).
+addresses return `priceOf` 0.5 IMD, `callbackGas` 200,000 and the same writer (read 2026-10-12 00:30 UTC) on
+mainnet. The same Intake v2 on Sepolia returns `callbackGas` 1,000,000 (read 2026-10-16), so a Sepolia completion
+does not exercise the mainnet stipend; the 200,000-gas budget is proven by the unit tests (section 3, `test_onResultGasWorstCase`).
 
 On Sepolia (11155111), `Deploy.deployForChain()` uses Curator
 `0x0919ba50b206C3F31D516De818b1fBc7dA21653D`, IDMD `0x2C3013c90a1Bb65573aae9a7C64fafB82697E4e4`,
@@ -35,6 +37,11 @@ TestIMD `0x44a1Cd38474FB1748400E7DEb5F8D786ccE3F89A` and BurnExecutor V1
 `0x097A19e0f021BBA5072701132625ad2401043A2E`, with the same Intake v2 and attester as above. Every other chain
 selects the mainnet constants. `run()` calls this function; no environment or caller-dependent choice is involved.
 The Sepolia V1 has code but its `previewBridge()` reverts, so the burn rule skips with code 1 there.
+Two things never follow the deployment chain, because every question is about mainnet: the catalog questions name
+the mainnet Curator (`Composer.MAINNET_CURATOR`), not the `curator` argument, so a Sepolia body is the mainnet body
+with only `consumer.chainId` changed and carries the same question hash; and `registerSpec` bounds a window by the
+mainnet height (`block.number` on chain 1, else `Composer.mainnetHeightBound()`, the slot-clock upper bound), so
+the game's windows register on Sepolia. The `curator` argument serves the direct reads (101 to 601) only.
 
 The launch is three contracts, `Renderer`, `Composer` and `Registry`. The registry takes eight constructor arguments,
 `(curator, idmd, imd, intake, attester, renderer, composer, burnExecutor)`: the original five external addresses,
@@ -67,7 +74,9 @@ The registry is ownerless, so none of these has a remedy inside it; each needs a
 - The Intake's owner can `setPrice(action, IMD, 0)`: `request` then reverts `ActionNotSold` and every `upgrade`
   reverts. It can `setCallbackGas` below what `onResult` needs: every callback then fails and no oracle trait can ever
   be verified. It can `setWriter`, `setPayTo`, `setSigner`. The plane can retire v2 for a v3 as it retired v1.
-- The attester `0x5598…` is a constant; if the plane rotates the key, every later attestation is a miss.
+- The attester `0x5598…` is a constant; if the plane rotates the key, every later attestation is a miss. The
+  registry cannot tell: `claimSponsored` and `upgradeSponsored` keep forwarding 0.5 IMD of pool money per request
+  for answers that can no longer verify, until the pool is empty, and nothing in the registry can recover it.
 - The plane may change the attestation struct or the action version string. It did change the struct once before
   2026-10-10 (an earlier record shows a shape without the three panel fields); every completion measured since (five,
   on both Intakes, `reference/intake/completions.json`) carries the 15-field shape, and the registry accepts only that.
