@@ -1,0 +1,27 @@
+{
+  "kind": "evm_contracts",
+  "contracts": [
+    {
+      "contract": "Renderer",
+      "constructorArgs": []
+    },
+    {
+      "contract": "Composer",
+      "constructorArgs": []
+    },
+    {
+      "contract": "Registry",
+      "constructorArgs": [
+        "0x0919ba50b206c3f31d516de818b1fbc7da21653d",
+        "0x2c3013c90a1bb65573aae9a7c64fafb82697e4e4",
+        "0x44a1cd38474fb1748400e7deb5f8d786cce3f89a",
+        "0xa43e6f75ee006411f79ac1c84120606c2330de82",
+        "0x5598aa9146215bc13eb26f2c692ad1461fd32982",
+        "$contract:Renderer",
+        "$contract:Composer",
+        "0x097A19e0f021BBA5072701132625ad2401043A2E"
+      ]
+    }
+  ],
+  "notes": "Sworn registry (ERC-721 'Sworn', symbol SWORN) Sepolia rehearsal of the mainnet launch, contracts only, no ETH, no owner or admin roles. Three applications in constructor dependency order: Renderer (no arguments, no storage), Composer (no arguments, no storage), then Registry(curator, idmd, imd, intake, attester, renderer, composer, burnExecutor) with eight static address arguments in ABI order: curator = WhitelistCurator 0x0919ba50b206c3f31d516de818b1fbc7da21653d; idmd = IdentityMD collection 0x2c3013c90a1bb65573aae9a7c64fafb82697e4e4; imd = Sepolia TestIMD 0x44a1cd38474fb1748400e7deb5f8d786cce3f89a; intake = IMD Intake v2 0xa43e6f75ee006411f79ac1c84120606c2330de82; attester = the IMD oracle signer 0x5598aa9146215bc13eb26f2c692ad1461fd32982 (a signer the registry checks, not a privileged role); renderer and composer = the two helper deployments of this manifest; burnExecutor = verified BurnExecutor V1 on Sepolia 0x097A19e0f021BBA5072701132625ad2401043A2E, a coded stand-in that has no previewBridge(), so the registry's try/catch records BurnSkipped(1) and refunds the sponsor fee; the burn rule is effectively off in this rehearsal. Never the zero address. No contract takes $owner: Registry has no owner, setter or upgrade path; the action id, attester, Intake and token are fixed at construction by decision. Design decisions, not defects: the constructor's live checks (IDMD code, Curator settled, Intake price nonzero, executor code) run only when not all four of Curator, IDMD, IMD and Intake lack code, so the pipeline's empty-chain floor deploys and a mistyped address on a real chain still reverts; abandon() after 14 days is claimant-only for personal requests and public for shared facts; every question attests Ethereum mainnet (chainId 1) while the body's consumer chain is the deployment chain; the registry keeps no ETH. No token, pool, reward distributor, ETH funding or initialization call."
+}
